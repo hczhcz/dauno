@@ -1,7 +1,10 @@
 'use strict';
 
+var port = 8001;
+
 var fs = require('fs');
 var https = require('https');
+var io = require('socket.io');
 
 var handlers = {
     app: function (req, res) {
@@ -45,10 +48,24 @@ var handlerMain = function (req, res) {
     }
 };
 
-https.createServer(
+var server = https.createServer(
     {
         key: fs.readFileSync('./key'),
         cert: fs.readFileSync('./crt'),
     },
     handlerMain
-).listen(8001);
+).listen(port);
+
+// TODO
+
+var socketServer = io(server);
+
+socketServer.on('connection', function (socket) {
+    socket.emit('req', {
+        test: 'test1',
+    });
+
+    socket.on('res', function (data) {
+        console.log(data);
+    });
+});
