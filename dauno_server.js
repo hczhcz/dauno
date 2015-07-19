@@ -8,6 +8,8 @@ var io = require('socket.io');
 
 var handlers = {
     app: function (req, res) {
+        console.log(req);
+
         var data = {
             method: req.method,
             url: req.url,
@@ -63,6 +65,10 @@ var socketServer = io(server);
 socketServer.on('connection', function (socket) {
     socket.emit('req', {
         test: 'test1',
+    });
+
+    socket.on('login', function (data) {
+        console.log(data);
     });
 
     socket.on('res', function (data) {
