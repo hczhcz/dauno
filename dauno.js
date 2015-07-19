@@ -47,5 +47,9 @@ module.exports.errLog = function (info) {
 };
 
 module.exports.hash = function (data) {
-    return crypto.createHash('sha256').update(data).digest('hex');
+    return crypto.createHmac('sha256', 'dauno_hash').update(data).digest('hex');
+};
+
+module.exports.rand = function () {
+    return crypto.randomBytes(64).digest('hex');
 };
