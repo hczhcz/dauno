@@ -26,12 +26,13 @@ var makeServer = function (port) {
 
                 // requests pool (size = 256)
                 // notice: may override old request
-                var id = user.dynamicGet('pool');
+                var id = user.dynamicGet('req');
                 if (typeof(id) == 'number') {
                     id = (id + 1) % 256;
                 } else {
                     id = 0;
                 }
+                user.dynamicSet('req', id);
 
                 socket.emit('daunoReq', {
                     id: id,

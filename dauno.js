@@ -33,7 +33,7 @@ module.exports.taskLog = function (task, info) {
 
 module.exports.sockLog = function (conn, task, info) {
     printLog(
-        '[' + conn.remoteAddress + ':' + conn.remotePort + '] '
+        '[' + conn.remoteAddress + ':socket.io] '
         + task + ': ' + info
     );
 };
