@@ -6,26 +6,38 @@ var fs = require('fs');
 var https = require('https');
 var io = require('socket.io');
 
+var dauno = require('./dauno');
+
 var handlers = {
     app: function (req, res) {
-        console.log(req);
+        dauno.httpLog(
+            req.connection, 'REQ', '/app' + req.url
+        );
 
         var data = {
             method: req.method,
             url: req.url,
             headers: req.headers,
             trailers: req.trailers,
-            now: new Date(),
+            now: dauno.date(),
         };
 
         res.writeHead(200);
         res.end(JSON.stringify(data));
     },
     err404: function (req, res) {
+        dauno.httpLog(
+            req.connection, 404, req.url
+        );
+
         res.writeHead(404);
         res.end();
     },
     err500: function (req, res) {
+        dauno.httpLog(
+            req.connection, 500, req.url
+        );
+
         res.writeHead(500);
         res.end();
     },
@@ -46,6 +58,8 @@ var handlerMain = function (req, res) {
 
         return handlers['err404'](req, res);
     } catch (e) {
+        dauno.errLog(String(e));
+
         return handlers['err500'](req, res);
     }
 };
@@ -68,10 +82,10 @@ socketServer.on('connection', function (socket) {
     });
 
     socket.on('login', function (data) {
-        console.log(data);
+        dauno.sockLog(socket.conn.remoteAddress, 'Login', JSON.stringify(data));
     });
 
     socket.on('res', function (data) {
-        console.log(data);
+        dauno.sockLog(socket.conn.remoteAddress, 'Response', JSON.stringify(data));
     });
 });
