@@ -31,8 +31,11 @@ module.exports.taskLog = function (task, info) {
     }
 };
 
-module.exports.sockLog = function (ip, task, info) {
-    printLog('[' + ip + '] ' + task + ': ' + info);
+module.exports.sockLog = function (conn, task, info) {
+    printLog(
+        '[' + conn.remoteAddress + ':' + conn.remotePort + '] '
+        + task + ': ' + info
+    );
 };
 
 module.exports.httpLog = function (conn, status, path) {

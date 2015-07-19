@@ -7,12 +7,12 @@ var dynamicStorage = {};
 var genStorageAccess = function (name) {
     return {
         staticGet: function (key) {
-            // TODO
-            throw 1;
+            // TODO: not implemented
+            throw Error();
         },
         staticSet: function (key, value) {
-            // TODO
-            throw 1;
+            // TODO: not implemented
+            throw Error();
         },
         dynamicGet: function (key) {
             if (!dynamicStorage[name]) {

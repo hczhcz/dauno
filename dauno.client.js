@@ -17,13 +17,25 @@ var makeClient = function (host, name, password) {
         });
     });
 
-    socket.on('req', function (data) {
+    socket.on('daunoReq', function (data) {
         dauno.taskLog('Request', JSON.stringify(data));
 
         // TODO
         socket.emit('res', {
             test: 'test2',
         });
+    });
+
+    socket.on('daunoData', function (data) {
+        dauno.taskLog('Data', JSON.stringify(data));
+
+        // TODO
+    });
+
+    socket.on('daunoEnd', function (data) {
+        dauno.taskLog('End', JSON.stringify(data));
+
+        // TODO
     });
 };
 
