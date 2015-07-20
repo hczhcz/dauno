@@ -4,9 +4,9 @@ var http = require('http');
 var https = require('https');
 var io = require('socket.io-client');
 
-var dauno = require('./dauno');
+var dauno = require('./dauno.util');
 
-var makeClient = function (host, name, password, target, targetPort) {
+var makeClient = function (host, user, password, target, targetPort) {
     var socket = io(host);
     var req = {};
 
@@ -14,7 +14,7 @@ var makeClient = function (host, name, password, target, targetPort) {
         dauno.taskLog('Connect');
 
         socket.emit('login', {
-            name: name,
+            user: user,
             password: dauno.hash(password),
         });
     });
@@ -27,7 +27,7 @@ var makeClient = function (host, name, password, target, targetPort) {
         data.port = targetPort;
 
         req[data.id] = http.request(
-            data,
+            data, // TODO: trailers?
             function (res) {
                 dauno.taskLog('Response begin', data.id);
 
@@ -45,7 +45,7 @@ var makeClient = function (host, name, password, target, targetPort) {
 
                     socket.emit('resData', {
                         id: data.id,
-                        chunk: data.chunk,
+                        chunk: chunk,
                     });
                 });
 
@@ -59,19 +59,19 @@ var makeClient = function (host, name, password, target, targetPort) {
             }
         );
 
-        // req[data.id].on('error', function (e) {
-        //     // TODO
-        // });
+        req[data.id].on('error', function (e) {
+            dauno.errLog(String(e));
+        });
     });
 
     socket.on('reqData', function (data) {
-        dauno.taskLog('Data', data.id);
+        dauno.taskLog('Request data', data.id);
 
         req[data.id].write(data.chunk);
     });
 
     socket.on('reqEnd', function (data) {
-        dauno.taskLog('End', data.id);
+        dauno.taskLog('Request end', data.id);
 
         req[data.id].end();
     });

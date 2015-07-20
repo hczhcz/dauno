@@ -4,7 +4,7 @@ var fs = require('fs');
 var https = require('https');
 var io = require('socket.io');
 
-var dauno = require('./dauno');
+var dauno = require('./dauno.util');
 var daunoUsers = require('./dauno.server.users');
 
 var makeServer = function (port) {
@@ -19,20 +19,26 @@ var makeServer = function (port) {
             );
 
             // TODO: get user from session info
-            var user = daunoUsers.auth('test', dauno.hash('pass'));
-            if (user) {
-                var socket = user.dynamicGet('socket');
+            var session = daunoUsers.auth('test', dauno.hash('pass'));
+            if (session) {
+                dauno.taskLog('User', session.user);
+
+                var socket = session.dynamicGet('socket');
                 // TODO: if (!socket) ???
 
                 // requests pool (size = 256)
                 // notice: may override old request
-                var id = user.dynamicGet('req');
+                var id = session.dynamicGet('lastId');
                 if (typeof(id) == 'number') {
                     id = (id + 1) % 256;
                 } else {
                     id = 0;
                 }
-                user.dynamicSet('req', id);
+                session.dynamicSet('lastId', id);
+                session.dynamicSet('res' + id, res);
+
+                dauno.taskLog('Request', req.url);
+                dauno.taskLog('Request id', id);
 
                 socket.emit('reqBegin', {
                     id: id,
@@ -44,6 +50,8 @@ var makeServer = function (port) {
                 });
 
                 req.on('data', function (chunk) {
+                    dauno.taskLog('Request data', id);
+
                     // TODO: order?
                     socket.emit('reqData', {
                         id: id,
@@ -52,6 +60,8 @@ var makeServer = function (port) {
                 });
 
                 req.on('end', function () {
+                    dauno.taskLog('Request end', id);
+
                     socket.emit('reqEnd', {
                         id: id,
                     });
@@ -116,19 +126,47 @@ var makeServer = function (port) {
         // login handler
         socket.on('login', function (data) {
             dauno.sockLog(
-                socket.conn, 'Login', data.name
+                socket.conn, 'Login', data.user
             );
 
-            var user = daunoUsers.auth(data.name, data.password);
-            user.dynamicSet('socket', socket);
+            var session = daunoUsers.auth(data.user, data.password);
+            session.dynamicSet('socket', socket);
 
-            // proxy response handler
-            socket.on('reqBegin', function (data) {
+            // response handlers
+
+            socket.on('resBegin', function (data) {
                 dauno.sockLog(
-                    socket.conn, 'Response', data.id
+                    socket.conn, 'Response begin', data.id
                 );
 
-                //
+                var res = session.dynamicGet('res' + data.id);
+
+                res.writeHead(
+                    data.statusCode,
+                    data.statusMessage,
+                    data.headers
+                );
+                res.addTrailers(data.trailers);
+            });
+
+            socket.on('resData', function (data) {
+                dauno.sockLog(
+                    socket.conn, 'Response data', data.id
+                );
+
+                var res = session.dynamicGet('res' + data.id);
+
+                res.write(data.chunk);
+            });
+
+            socket.on('resEnd', function (data) {
+                dauno.sockLog(
+                    socket.conn, 'Response end', data.id
+                );
+
+                var res = session.dynamicGet('res' + data.id);
+
+                res.end();
             });
         });
     });

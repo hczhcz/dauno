@@ -24,7 +24,7 @@ var printLog = function (info) {
 };
 
 module.exports.taskLog = function (task, info) {
-    if (info) {
+    if (typeof(info) != 'undefined') {
         printLog(task + ': ' + info);
     } else {
         printLog(task);
@@ -46,7 +46,7 @@ module.exports.httpLog = function (conn, status, path) {
 };
 
 module.exports.errLog = function (info) {
-    printLog('ERROR: ' + info);
+    printLog(info);
 };
 
 module.exports.hash = function (data) {

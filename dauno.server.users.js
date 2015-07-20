@@ -1,11 +1,12 @@
 'use strict';
 
-var dauno = require('./dauno');
+var dauno = require('./dauno.util');
 
 var dynamicStorage = {};
 
-var genStorageAccess = function (name) {
+var genStorageAccess = function (user) {
     return {
+        user: user,
         staticGet: function (key) {
             // TODO: not implemented
             throw Error();
@@ -15,26 +16,26 @@ var genStorageAccess = function (name) {
             throw Error();
         },
         dynamicGet: function (key) {
-            if (!dynamicStorage[name]) {
+            if (!dynamicStorage[user]) {
                 return;
             }
 
-            return dynamicStorage[name][key];
+            return dynamicStorage[user][key];
         },
         dynamicSet: function (key, value) {
-            if (!dynamicStorage[name]) {
-                dynamicStorage[name] = {};
+            if (!dynamicStorage[user]) {
+                dynamicStorage[user] = {};
             }
 
-            dynamicStorage[name][key] = value;
+            dynamicStorage[user][key] = value;
         },
     };
 };
 
-module.exports.auth = function (name, password) {
+module.exports.auth = function (user, password) {
     // TODO
-    // notice: name should not be __proto__ etc
-    if (name == 'test' && password == dauno.hash('pass')) {
-        return genStorageAccess(name);
+    // notice: user should not be __proto__ etc
+    if (user == 'test' && password == dauno.hash('pass')) {
+        return genStorageAccess(user);
     }
 };
