@@ -19,8 +19,9 @@ var makeClient = function (host, name, password, target, targetPort) {
         });
     });
 
-    socket.on('daunoReq', function (data) {
-        dauno.taskLog('Request', data.id);
+    socket.on('reqBegin', function (data) {
+        dauno.taskLog('Request', data.path);
+        dauno.taskLog('Request id', data.id);
 
         data.host = target;
         data.port = targetPort;
@@ -28,15 +29,32 @@ var makeClient = function (host, name, password, target, targetPort) {
         req[data.id] = http.request(
             data,
             function (res) {
-                res.on('data', function (chunk) {
-                    console.log('data:' + chunk);
-                    // TODO
-                    // socket.emit('res', {
-                    //     test: 'test2',
-                    // });
+                dauno.taskLog('Response begin', data.id);
+
+                socket.emit('resBegin', {
+                    id: data.id,
+                    statusCode: res.statusCode,
+                    statusMessage: res.statusMessage,
+                    headers: res.headers,
+                    trailers: res.trailers,
+                    // now: dauno.date(),
                 });
+
+                res.on('data', function (chunk) {
+                    dauno.taskLog('Response data', data.id);
+
+                    socket.emit('resData', {
+                        id: data.id,
+                        chunk: data.chunk,
+                    });
+                });
+
                 res.on('end', function () {
-                    // TODO
+                    dauno.taskLog('Response end', data.id);
+
+                    socket.emit('resEnd', {
+                        id: data.id,
+                    });
                 });
             }
         );
@@ -46,13 +64,13 @@ var makeClient = function (host, name, password, target, targetPort) {
         // });
     });
 
-    socket.on('daunoData', function (data) {
+    socket.on('reqData', function (data) {
         dauno.taskLog('Data', data.id);
 
         req[data.id].write(data.chunk);
     });
 
-    socket.on('daunoEnd', function (data) {
+    socket.on('reqEnd', function (data) {
         dauno.taskLog('End', data.id);
 
         req[data.id].end();

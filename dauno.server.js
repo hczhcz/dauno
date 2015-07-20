@@ -34,25 +34,25 @@ var makeServer = function (port) {
                 }
                 user.dynamicSet('req', id);
 
-                socket.emit('daunoReq', {
+                socket.emit('reqBegin', {
                     id: id,
                     method: req.method,
-                    url: req.url,
+                    path: req.url,
                     headers: req.headers,
                     trailers: req.trailers,
-                    now: dauno.date(),
+                    // now: dauno.date(),
                 });
 
                 req.on('data', function (chunk) {
                     // TODO: order?
-                    socket.emit('daunoData', {
+                    socket.emit('reqData', {
                         id: id,
                         chunk: chunk,
                     });
                 });
 
                 req.on('end', function () {
-                    socket.emit('daunoEnd', {
+                    socket.emit('reqEnd', {
                         id: id,
                     });
                 });
@@ -123,7 +123,7 @@ var makeServer = function (port) {
             user.dynamicSet('socket', socket);
 
             // proxy response handler
-            socket.on('res', function (data) {
+            socket.on('reqBegin', function (data) {
                 dauno.sockLog(
                     socket.conn, 'Response', data.id
                 );
