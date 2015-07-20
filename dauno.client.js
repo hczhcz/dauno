@@ -20,14 +20,16 @@ var makeClient = function (host, user, password, target, targetPort) {
     });
 
     socket.on('reqBegin', function (data) {
-        dauno.taskLog('Request', data.path);
-        dauno.taskLog('Request id', data.id);
-
-        data.host = target;
-        data.port = targetPort;
+        dauno.taskLog('Request ' + data.id, data.path);
 
         req[data.id] = http.request(
-            data, // TODO: trailers?
+            {
+                host: target,
+                port: targetPort,
+                method: data.method,
+                path: data.path,
+                headers: data.headers,
+            },
             function (res) {
                 dauno.taskLog('Response begin', data.id);
 
@@ -58,6 +60,8 @@ var makeClient = function (host, user, password, target, targetPort) {
                 });
             }
         );
+
+        req[data.id].addTrailers(data.trailers);
 
         req[data.id].on('error', function (e) {
             dauno.errLog(String(e));

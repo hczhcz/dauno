@@ -14,14 +14,16 @@ var makeServer = function (port) {
             // TODO: make session
         },
         app: function (req, res) {
-            dauno.httpLog(
-                req.connection, 'REQ', '/app' + req.url
+            dauno.reqLog(
+                req.connection, 'New', req.method + ' /app' + req.url
             );
 
             // TODO: get user from session info
             var session = daunoUsers.auth('test', dauno.hash('pass'));
             if (session) {
-                dauno.taskLog('User', session.user);
+                dauno.reqLog(
+                    req.connection, 'User', session.user
+                );
 
                 var socket = session.dynamicGet('socket');
                 // TODO: if (!socket) ???
@@ -35,10 +37,12 @@ var makeServer = function (port) {
                     id = 0;
                 }
                 session.dynamicSet('lastId', id);
+                session.dynamicSet('req' + id, req); // for log only
                 session.dynamicSet('res' + id, res);
 
-                dauno.taskLog('Request', req.url);
-                dauno.taskLog('Request id', id);
+                dauno.reqLog(
+                    req.connection, 'Request ' + id, req.url
+                );
 
                 socket.emit('reqBegin', {
                     id: id,
@@ -50,9 +54,10 @@ var makeServer = function (port) {
                 });
 
                 req.on('data', function (chunk) {
-                    dauno.taskLog('Request data', id);
+                    dauno.reqLog(
+                        req.connection, 'Request data', id
+                    );
 
-                    // TODO: order?
                     socket.emit('reqData', {
                         id: id,
                         chunk: chunk,
@@ -60,7 +65,9 @@ var makeServer = function (port) {
                 });
 
                 req.on('end', function () {
-                    dauno.taskLog('Request end', id);
+                    dauno.reqLog(
+                        req.connection, 'Request end', id
+                    );
 
                     socket.emit('reqEnd', {
                         id: id,
@@ -72,7 +79,7 @@ var makeServer = function (port) {
         },
         err404: function (req, res) {
             dauno.httpLog(
-                req.connection, 404, req.url
+                req.connection, 404, req.method, req.url
             );
 
             res.writeHead(404);
@@ -80,7 +87,7 @@ var makeServer = function (port) {
         },
         err500: function (req, res) {
             dauno.httpLog(
-                req.connection, 500, req.url
+                req.connection, 500, req.method, req.url
             );
 
             res.writeHead(500);
@@ -95,7 +102,7 @@ var makeServer = function (port) {
         },
         // to call a http handler
         function (req, res) {
-            // try {
+            try {
                 var parsedUrl = req.url.match(/^\/(\w+)(.*)/);
 
                 if (parsedUrl && parsedUrl.length == 3) {
@@ -108,11 +115,11 @@ var makeServer = function (port) {
                 }
 
                 return handlers.err404(req, res);
-            // } catch (e) {
-            //     dauno.errLog(String(e));
+            } catch (e) {
+                dauno.errLog(String(e));
 
-            //     return handlers.err500(req, res);
-            // }
+                return handlers.err500(req, res);
+            }
         }
     ).listen(port);
 
@@ -137,6 +144,12 @@ var makeServer = function (port) {
             socket.on('resBegin', function (data) {
                 dauno.sockLog(
                     socket.conn, 'Response begin', data.id
+                );
+
+                var req = session.dynamicGet('req' + data.id);
+
+                dauno.httpLog(
+                    req.connection, data.statusCode, req.method, '/app' + req.url
                 );
 
                 var res = session.dynamicGet('res' + data.id);

@@ -38,10 +38,17 @@ module.exports.sockLog = function (conn, task, info) {
     );
 };
 
-module.exports.httpLog = function (conn, status, path) {
+module.exports.reqLog = function (conn, task, info) {
     printLog(
-        '[' + conn.remoteAddress + ':' + conn.remotePort + '] [' + status + '] '
-        + path
+        '[' + conn.remoteAddress + ':' + conn.remotePort + '] '
+        + task + ': ' + info
+    );
+};
+
+module.exports.httpLog = function (conn, status, method, path) {
+    printLog(
+        '[' + conn.remoteAddress + ':' + conn.remotePort + '] '
+        + status + ' ' + method + ' ' + path
     );
 };
 
