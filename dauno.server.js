@@ -7,7 +7,7 @@ var io = require('socket.io');
 var dauno = require('./dauno.util');
 var daunoUsers = require('./dauno.server.users');
 
-var makeServer = function (port) {
+var makeServer = function (port, forward) {
     // http handlers
     var handlers = {
         login: function (req, res) {
@@ -114,7 +114,12 @@ var makeServer = function (port) {
                     }
                 }
 
-                return handlers.err404(req, res);
+                // if not found
+                if (forward) {
+                    return handlers.app(req, res); // TODO
+                } else {
+                    return handlers.err404(req, res);
+                }
             } catch (e) {
                 dauno.errLog(String(e));
 
@@ -185,4 +190,4 @@ var makeServer = function (port) {
     });
 };
 
-makeServer(8001);
+makeServer(8001, true);
