@@ -5,7 +5,7 @@ var https = require('https');
 var io = require('socket.io');
 
 var dauno = require('./dauno.util');
-var daunoUsers = require('./dauno.server.users');
+var daunoUsers = require('./dauno.users');
 
 var makeServer = function (port, forward) {
     // http handlers
