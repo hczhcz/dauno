@@ -24,7 +24,7 @@ var genStorageAccess = function (user) {
         staticGet: function (key, callback) {
             dbStorage.find({
                 user: user
-            }, function (err, docs) {
+            }).toArray(function (err, docs) {
                 if (err) {
                     throw err;
                 } else if (docs.length == 1) {
