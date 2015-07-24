@@ -100,12 +100,26 @@ var makeServer = function (port) {
                                 });
                             });
                         } else {
-                            throw Error(); // user not found
+                            // login failed
+
+                            dauno.httpLog(
+                                req.connection, 302, req.method, req.url
+                            );
+
+                            res.writeHead(302, {Location: '/dauno/login'});
+                            res.end();
                         }
                     }
                 );
             } else {
-                // TODO
+                // need login
+
+                dauno.httpLog(
+                    req.connection, 302, req.method, req.url
+                );
+
+                res.writeHead(302, {Location: '/dauno/login'});
+                res.end();
             }
         },
         '/404': function (req, res) {
