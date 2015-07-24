@@ -2,6 +2,7 @@
 
 var fs = require('fs');
 var https = require('https');
+var querystring = require('querystring');
 var Cookies = require('cookies');
 var io = require('socket.io');
 
@@ -15,24 +16,49 @@ var makeServer = function (port) {
             // TODO: make session
         },
         '/auth': function (req, res) {
-            var cookies = new Cookies(req, res);
+            if (req.method == 'POST') {
+                var data = '';
 
-            var options = {
-                secure: true,
-                overwrite: true,
-                maxAge: 1000 * 3600 * 24,
-            };
+                req.on('data', function (chunk) {
+                    if (data.length < 4096) {
+                        data += chunk;
+                    }
+                });
 
-            cookies.set('login', '1', options);
-            cookies.set('user', 'test', options);
-            cookies.set('password', dauno.hash('pass'), options);
+                req.on('end', function () {
+                    var args = querystring.parse(data);
 
-            dauno.httpLog(
-                req.connection, 200, req.method, req.url
-            );
+                    var cookies = new Cookies(req, res);
 
-            res.writeHead(200);
-            res.end();
+                    var options = {
+                        secure: true,
+                        overwrite: true,
+                        maxAge: 1000 * 3600 * 24,
+                    };
+
+                    // TODO: session id?
+                    if (args['user']) {
+                        // login
+                        cookies.set('login', 'Y', options);
+                        cookies.set('user', args['user'], options);
+                        cookies.set('password', args['password'], options);
+                    } else {
+                        // logout
+                        cookies.set('login');
+                        cookies.set('user');
+                        cookies.set('password');
+                    }
+
+                    dauno.httpLog(
+                        req.connection, 200, req.method, req.url
+                    );
+
+                    res.writeHead(200);
+                    res.end();
+                });
+            } else {
+                throw Error();
+            }
         },
         '/app': function (req, res) {
             dauno.reqLog(
@@ -41,7 +67,7 @@ var makeServer = function (port) {
 
             var cookies = new Cookies(req, res);
 
-            if (cookies.get('login') === '1') {
+            if (cookies.get('login') == 'Y') {
                 daunoUsers.auth(
                     cookies.get('user'),
                     cookies.get('password'),
