@@ -7,15 +7,15 @@ var io = require('socket.io');
 var dauno = require('./dauno.util');
 var daunoUsers = require('./dauno.users');
 
-var makeServer = function (port, forward) {
+var makeServer = function (port) {
     // http handlers
     var handlers = {
-        login: function (req, res) {
+        '/login': function (req, res) {
             // TODO: make session
         },
-        app: function (req, res) {
+        '/app': function (req, res) {
             dauno.reqLog(
-                req.connection, 'New', req.method + ' /app' + req.url
+                req.connection, 'New', req.method + ' ' + req.url
             );
 
             // TODO: get user from session info
@@ -78,7 +78,7 @@ var makeServer = function (port, forward) {
                 }
             });
         },
-        err404: function (req, res) {
+        '/404': function (req, res) {
             dauno.httpLog(
                 req.connection, 404, req.method, req.url
             );
@@ -86,7 +86,7 @@ var makeServer = function (port, forward) {
             res.writeHead(404);
             res.end();
         },
-        err500: function (req, res) {
+        '/500': function (req, res) {
             dauno.httpLog(
                 req.connection, 500, req.method, req.url
             );
@@ -104,27 +104,27 @@ var makeServer = function (port, forward) {
         // to call a http handler
         function (req, res) {
             try {
-                var parsedUrl = req.url.match(/^\/(\w+)(.*)/);
+                var parsedUrl = req.url.match(/^\/dauno(\/\w+)(.*)/);
 
                 if (parsedUrl && parsedUrl.length == 3) {
+                    // built-in
+
                     var cmd = parsedUrl[1];
 
                     if (handlers.hasOwnProperty(cmd)) {
-                        req.url = parsedUrl[2];
                         return handlers[cmd](req, res);
+                    } else {
+                        return handlers['/404'](req, res);
                     }
-                }
-
-                // if not found
-                if (forward) {
-                    return handlers.app(req, res);
                 } else {
-                    return handlers.err404(req, res);
+                    // proxy
+
+                    return handlers['/app'](req, res);
                 }
             } catch (e) {
                 dauno.errLog(String(e));
 
-                return handlers.err500(req, res);
+                return handlers['/500'](req, res);
             }
         }
     ).listen(port);
@@ -155,7 +155,7 @@ var makeServer = function (port, forward) {
                     var req = session.dynamicGet('req' + data.id);
 
                     dauno.httpLog(
-                        req.connection, data.statusCode, req.method, '/app' + req.url
+                        req.connection, data.statusCode, req.method, req.url
                     );
 
                     var res = session.dynamicGet('res' + data.id);
