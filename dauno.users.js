@@ -30,7 +30,7 @@ var genStorageAccess = function (user) {
                 } else if (docs.length == 1) {
                     callback(docs[0][key]);
                 } else {
-                    throw Error();
+                    callback(undefined);
                 }
             });
         },
@@ -65,14 +65,14 @@ var genStorageAccess = function (user) {
     };
 };
 
-module.exports.auth = function (user, password, callback) {
+module.exports.auth = function (user, password, callback, fail) {
     var session = genStorageAccess(user);
 
     session.staticGet('password', function (data) {
-        if (password === data) {
+        if (password && password === data) {
             callback(session);
         } else {
-            throw Error();
+            fail();
         }
     });
 };
