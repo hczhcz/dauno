@@ -51,8 +51,8 @@ var makeServer = function (port) {
                                 req.connection, 'User', session.user
                             );
 
+                            // notice: may fail if no socket exists before
                             var socket = session.dynamicGet('socket');
-                            // TODO: if (!socket) ???
 
                             // requests pool (size = 256)
                             // notice: may override old request
@@ -114,7 +114,7 @@ var makeServer = function (port) {
             );
 
             res.writeHead(404);
-            res.end();
+            res.end('Not found');
         },
         '/500': function (req, res) {
             dauno.httpLog(
@@ -122,7 +122,7 @@ var makeServer = function (port) {
             );
 
             res.writeHead(500);
-            res.end();
+            res.end('Error');
         },
     };
 
@@ -162,10 +162,6 @@ var makeServer = function (port) {
     var socketServer = io(httpServer);
 
     socketServer.on('connection', function (socket) {
-        socket.emit('req', {
-            test: 'test1',
-        });
-
         // login handler
         socket.on('login', function (data) {
             dauno.sockLog(
