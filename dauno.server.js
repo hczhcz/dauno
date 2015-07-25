@@ -339,5 +339,31 @@ var makeServer = function (httpsPort, httpPort) {
 daunoUsers.init(function () {
     dauno.taskLog('Init');
 
-    makeServer(8001, 8002, true);
+    var httpsPort = 443;
+    var httpPort = 80;
+
+    var argv = process.argv;
+    var argm = '';
+
+    for (var i in argv) {
+        if (argv[i][0] == '-') {
+            argm = argv[i];
+
+            if (argm == '-h') {
+                console.log('[-p port] [-r http port]');
+
+                return;
+            }
+        } else {
+            if (argm == '-p') {
+                httpsPort = argv[i];
+            } else if (argm == '-r') {
+                httpPort = argv[i];
+            }
+
+            argm = '';
+        }
+    }
+
+    makeServer(httpsPort, httpPort);
 });

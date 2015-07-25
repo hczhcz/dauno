@@ -81,7 +81,48 @@ var makeClient = function (host, user, password, target, targetPort) {
     });
 };
 
+var host = 'localhost';
+var hostPort = '443';
+var user = 'test';
+var password = 'pass';
+var target = '127.0.0.1';
+var targetPort = '8080';
+
+var argv = process.argv;
+var argm = '';
+
+for (var i in argv) {
+    if (argv[i][0] == '-') {
+        argm = argv[i];
+
+        if (argm == '-h') {
+            console.log('[-t dauno server] [-p dauno port]');
+            console.log('[-u user] [-p password]');
+            console.log('[-T target server] [-P target port]');
+
+            return;
+        }
+    } else {
+        if (argm == '-t') {
+            host = argv[i];
+        } else if (argm == '-p') {
+            hostPort = argv[i];
+        } else if (argm == '-u') {
+            user = argv[i];
+        } else if (argm == '-k') {
+            password = argv[i];
+        } else if (argm == '-T') {
+            target = argv[i];
+        } else if (argm == '-P') {
+            targetPort = argv[i];
+        }
+
+        argm = '';
+    }
+}
+
 makeClient(
-    'https://127.0.0.1:8001', 'test', 'pass',
-    '127.0.0.1', '80'
+    'https://' + host + ':' + hostPort,
+    user, password,
+    target, targetPort
 );
