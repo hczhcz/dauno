@@ -13,6 +13,12 @@ var makeServer = function (port) {
     // http handlers
     var handlers = {
         '/login': function (req, res) {
+            dauno.httpLog(
+                req.connection, 200, req.method, req.url
+            );
+
+            res.writeHead(200);
+            res.end(fs.readFileSync('./login.html'));
         },
         '/auth': function (req, res) {
             if (req.method == 'POST') {
@@ -49,10 +55,10 @@ var makeServer = function (port) {
                     }
 
                     dauno.httpLog(
-                        req.connection, 200, req.method, req.url
+                        req.connection, 302, req.method, req.url
                     );
 
-                    res.writeHead(200);
+                    res.writeHead(302, {Location: '/'});
                     res.end();
                 });
             } else {
