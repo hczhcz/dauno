@@ -1,6 +1,7 @@
 'use strict';
 
 var fs = require('fs');
+var http = require('http');
 var https = require('https');
 var querystring = require('querystring');
 var Cookies = require('cookies');
@@ -9,7 +10,7 @@ var io = require('socket.io');
 var dauno = require('./dauno.util');
 var daunoUsers = require('./dauno.users');
 
-var makeServer = function (port) {
+var makeServer = function (httpsPort, httpPort) {
     // http handlers
     var handlers = {
         '/login': function (req, res) {
@@ -179,7 +180,29 @@ var makeServer = function (port) {
         },
     };
 
-    var httpServer = https.createServer(
+    var httpServer = http.createServer(
+        function (req, res) {
+            // force https
+
+            try {
+                dauno.httpLog(
+                    req.connection, 302, req.method, req.url
+                );
+
+                var host = req.headers.host;
+                var pos = host.indexOf(':');
+                var path = 'https://' + host.substr(0, pos) + ':' + httpsPort + req.url;
+
+                res.writeHead(302, {Location: path});
+                res.end();
+            } catch (e) {
+                // strange error
+                dauno.errLog(String(e));
+            }
+        }
+    ).listen(httpPort);
+
+    var httpsServer = https.createServer(
         {
             key: fs.readFileSync('./key'),
             cert: fs.readFileSync('./crt'),
@@ -210,9 +233,9 @@ var makeServer = function (port) {
                 return handlers['/500'](req, res);
             }
         }
-    ).listen(port);
+    ).listen(httpsPort);
 
-    var socketServer = io(httpServer);
+    var socketServer = io(httpsServer);
 
     socketServer.on('connection', function (socket) {
         try {
@@ -302,5 +325,5 @@ var makeServer = function (port) {
 daunoUsers.init(function () {
     dauno.taskLog('Init');
 
-    makeServer(8001, true);
+    makeServer(8001, 8002, true);
 });
