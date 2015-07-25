@@ -97,7 +97,7 @@ for (var i in argv) {
 
         if (argm == '-h') {
             console.log('[-t dauno server] [-p dauno port]');
-            console.log('[-u user] [-p password]');
+            console.log('[-u user] [-k password]');
             console.log('[-T target server] [-P target port]');
 
             return;

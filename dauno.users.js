@@ -2,8 +2,6 @@
 
 var mongodb = require('mongodb').MongoClient;
 
-var dauno = require('./dauno.util');
-
 var dbStorage = undefined;
 var memStorage = {};
 
@@ -80,5 +78,5 @@ module.exports.auth = function (user, password, callback, fail) {
 module.exports.reg = function (user, password, callback) {
     var session = genStorageAccess(user);
 
-    session.staticSet('password', dauno.hash(password), callback);
+    session.staticSet('password', password, callback);
 };
