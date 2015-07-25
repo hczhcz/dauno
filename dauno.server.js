@@ -1,6 +1,7 @@
 'use strict';
 
 var fs = require('fs');
+var domain = require('domain');
 var http = require('http');
 var https = require('https');
 var querystring = require('querystring');
@@ -72,7 +73,7 @@ var makeServer = function (httpsPort, httpPort) {
                     res.end();
                 });
             } else {
-                throw Error();
+                throw Error('POST only');
             }
         },
         '/app': function (req, res) {
@@ -184,7 +185,22 @@ var makeServer = function (httpsPort, httpPort) {
         function (req, res) {
             // force https
 
-            try {
+            var d = domain.create();
+
+            d.on('error', function (e) {
+                dauno.errLog(String(e));
+
+                try {
+                    handlers['/500'](req, res);
+                } catch (e) {
+                    // ignore
+                }
+            });
+
+            d.add(req);
+            d.add(res);
+
+            d.run(function () {
                 dauno.httpLog(
                     req.connection, 302, req.method, req.url
                 );
@@ -195,10 +211,7 @@ var makeServer = function (httpsPort, httpPort) {
 
                 res.writeHead(302, {Location: path});
                 res.end();
-            } catch (e) {
-                // strange error
-                dauno.errLog(String(e));
-            }
+            });
         }
     ).listen(httpPort);
 
@@ -209,7 +222,22 @@ var makeServer = function (httpsPort, httpPort) {
         },
         // to call a http handler
         function (req, res) {
-            try {
+            var d = domain.create();
+
+            d.on('error', function (e) {
+                dauno.errLog(String(e));
+
+                try {
+                    handlers['/500'](req, res);
+                } catch (e) {
+                    // ignore
+                }
+            });
+
+            d.add(req);
+            d.add(res);
+
+            d.run(function () {
                 var parsedUrl = req.url.match(/^\/dauno(\/\w+)(.*)/);
 
                 if (parsedUrl && parsedUrl.length == 3) {
@@ -218,107 +246,93 @@ var makeServer = function (httpsPort, httpPort) {
                     var cmd = parsedUrl[1];
 
                     if (handlers.hasOwnProperty(cmd)) {
-                        return handlers[cmd](req, res);
+                        handlers[cmd](req, res);
                     } else {
-                        return handlers['/404'](req, res);
+                        handlers['/404'](req, res);
                     }
                 } else {
                     // proxy
 
-                    return handlers['/app'](req, res);
+                    handlers['/app'](req, res);
                 }
-            } catch (e) {
-                dauno.errLog(String(e));
-
-                return handlers['/500'](req, res);
-            }
+            });
         }
     ).listen(httpsPort);
 
     var socketServer = io(httpsServer);
 
     socketServer.on('connection', function (socket) {
-        try {
+        var d = domain.create();
+
+        d.on('error', function (e) {
+            dauno.errLog(String(e));
+        });
+
+        d.add(socket);
+
+        d.run(function () {
             // login handler
             socket.on('login', function (data) {
-                try {
-                    dauno.sockLog(
-                        socket.conn, 'Login', data.user
-                    );
+                dauno.sockLog(
+                    socket.conn, 'Login', data.user
+                );
 
-                    daunoUsers.auth(
-                        data.user,
-                        data.password,
-                        function (session) {
-                            session.dynamicSet('socket', socket);
+                daunoUsers.auth(
+                    data.user,
+                    data.password,
+                    function (session) {
+                        session.dynamicSet('socket', socket);
 
-                            // response handlers
+                        // response handlers
 
-                            socket.on('resBegin', function (data) {
-                                try {
-                                    dauno.sockLog(
-                                        socket.conn, 'Response begin', data.id
-                                    );
+                        socket.on('resBegin', function (data) {
+                                dauno.sockLog(
+                                    socket.conn, 'Response begin', data.id
+                                );
 
-                                    var req = session.dynamicGet('req' + data.id);
+                                var req = session.dynamicGet('req' + data.id);
 
-                                    dauno.httpLog(
-                                        req.connection, data.statusCode, req.method, req.url
-                                    );
+                                dauno.httpLog(
+                                    req.connection, data.statusCode, req.method, req.url
+                                );
 
-                                    var res = session.dynamicGet('res' + data.id);
+                                var res = session.dynamicGet('res' + data.id);
 
-                                    res.writeHead(
-                                        data.statusCode,
-                                        data.statusMessage,
-                                        data.headers
-                                    );
-                                    res.addTrailers(data.trailers);
-                                } catch (e) {
-                                    dauno.errLog(String(e));
-                                }
-                            });
+                                res.writeHead(
+                                    data.statusCode,
+                                    data.statusMessage,
+                                    data.headers
+                                );
+                                res.addTrailers(data.trailers);
+                        });
 
-                            socket.on('resData', function (data) {
-                                try {
-                                    dauno.sockLog(
-                                        socket.conn, 'Response data', data.id
-                                    );
+                        socket.on('resData', function (data) {
+                                dauno.sockLog(
+                                    socket.conn, 'Response data', data.id
+                                );
 
-                                    var res = session.dynamicGet('res' + data.id);
+                                var res = session.dynamicGet('res' + data.id);
 
-                                    res.write(data.chunk);
-                                } catch (e) {
-                                    dauno.errLog(String(e));
-                                }
-                            });
+                                res.write(data.chunk);
+                        });
 
-                            socket.on('resEnd', function (data) {
-                                try {
-                                    dauno.sockLog(
-                                        socket.conn, 'Response end', data.id
-                                    );
+                        socket.on('resEnd', function (data) {
+                                dauno.sockLog(
+                                    socket.conn, 'Response end', data.id
+                                );
 
-                                    var res = session.dynamicGet('res' + data.id);
+                                var res = session.dynamicGet('res' + data.id);
 
-                                    res.end();
-                                } catch (e) {
-                                    dauno.errLog(String(e));
-                                }
-                            });
-                        },
-                        function () {
-                            // bad login
-                            dauno.errLog('Login fail');
-                        }
-                    );
-                } catch (e) {
-                    dauno.errLog(String(e));
-                }
+                                res.end();
+                        });
+                    },
+                    function () {
+                        // bad login
+                        dauno.errLog('Login fail');
+                    }
+                );
             });
-        } catch (e) {
-            dauno.errLog(String(e));
-        }
+        });
     });
 };
 
