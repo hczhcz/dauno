@@ -14,6 +14,14 @@ var daunoUsers = require('./dauno.users');
 var makeServer = function (httpsPort, httpPort) {
     // http handlers
     var handlers = {
+        '/client': function (req, res) {
+            dauno.httpLog(
+                req.connection, 200, req.method, req.url
+            );
+
+            res.writeHead(200);
+            res.end(fs.readFileSync('./dauno.client.js'));
+        },
         '/login': function (req, res) {
             dauno.httpLog(
                 req.connection, 200, req.method, req.url
@@ -226,6 +234,7 @@ var makeServer = function (httpsPort, httpPort) {
 
             d.on('error', function (e) {
                 dauno.errLog(String(e));
+                console.log(e.stack); // TODO
 
                 try {
                     handlers['/500'](req, res);
@@ -300,7 +309,7 @@ var makeServer = function (httpsPort, httpPort) {
 
                                 res.writeHead(
                                     data.statusCode,
-                                    data.statusMessage,
+                                    // data.statusMessage,
                                     data.headers
                                 );
                                 res.addTrailers(data.trailers);
@@ -336,34 +345,34 @@ var makeServer = function (httpsPort, httpPort) {
     });
 };
 
+var httpsPort = 443;
+var httpPort = 80;
+
+var argv = process.argv;
+var argm = '';
+
+for (var i in argv) {
+    if (argv[i][0] == '-') {
+        argm = argv[i];
+
+        if (argm == '-h') {
+            console.log('[-p port] [-r http port]');
+
+            return;
+        }
+    } else {
+        if (argm == '-p') {
+            httpsPort = argv[i];
+        } else if (argm == '-r') {
+            httpPort = argv[i];
+        }
+
+        argm = '';
+    }
+}
+
 daunoUsers.init(function () {
     dauno.taskLog('Init');
-
-    var httpsPort = 443;
-    var httpPort = 80;
-
-    var argv = process.argv;
-    var argm = '';
-
-    for (var i in argv) {
-        if (argv[i][0] == '-') {
-            argm = argv[i];
-
-            if (argm == '-h') {
-                console.log('[-p port] [-r http port]');
-
-                return;
-            }
-        } else {
-            if (argm == '-p') {
-                httpsPort = argv[i];
-            } else if (argm == '-r') {
-                httpPort = argv[i];
-            }
-
-            argm = '';
-        }
-    }
 
     makeServer(httpsPort, httpPort);
 });
